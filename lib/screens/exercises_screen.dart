@@ -15,6 +15,20 @@ class ExercisesScreen extends StatefulWidget {
 class _ExercisesScreenState extends State<ExercisesScreen> {
   String _searchQuery = '';
   MuscleGroup? _selectedMuscle;
+  int _currentPage = 0;
+  static const int _itemsPerPage = 10;
+
+  @override
+  void initState() {
+    super.initState();
+    // Refresh exercises when screen loads
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        final appState = context.read<AppState>();
+        appState.refreshExercises();
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +42,15 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
     } else {
       exercises = appState.exercises;
     }
+
+    // Calculate pagination
+    final totalItems = exercises.length;
+    final totalPages = (totalItems / _itemsPerPage).ceil();
+    final startIndex = _currentPage * _itemsPerPage;
+    final endIndex = (startIndex + _itemsPerPage).clamp(0, totalItems);
+    final paginatedExercises = totalItems > 0
+        ? exercises.sublist(startIndex, endIndex < totalItems ? endIndex : totalItems)
+        : <Exercise>[];
 
     return Scaffold(
       appBar: const BrandedAppBar(
@@ -99,10 +122,29 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                             size: 64, color: Colors.white.withOpacity(0.2)),
                         const SizedBox(height: 16),
                         Text(
-                          'No exercises found',
+                          _searchQuery.isNotEmpty
+                              ? 'No exercises match your search'
+                              : _selectedMuscle != null
+                                  ? 'No exercises for this muscle group'
+                                  : 'No exercises found\n\n Tap refresh or restart app',
+                          textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 16,
                             color: Colors.white.withOpacity(0.6),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            context.read<AppState>().refreshExercises();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Refreshing exercises...')),
+                            );
+                          },
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Refresh'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF3B82F6),
                           ),
                         ),
                       ],
@@ -110,9 +152,40 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.all(16),
-                    itemCount: exercises.length,
+                    itemCount: paginatedExercises.length + 1,
                     itemBuilder: (context, index) {
-                      final exercise = exercises[index];
+                      if (index == paginatedExercises.length) {
+                        return Container(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              IconButton(
+                                onPressed: _currentPage > 0
+                                    ? () => setState(() => _currentPage--)
+                                    : null,
+                                icon: const Icon(Icons.arrow_back),
+                              ),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Page ${_currentPage + 1} of ${totalPages.toString()}',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              IconButton(
+                                onPressed: _currentPage < totalPages - 1
+                                    ? () => setState(() => _currentPage++)
+                                    : null,
+                                icon: const Icon(Icons.arrow_forward),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      final exercise = paginatedExercises[index];
                       return Card(
                         margin: const EdgeInsets.only(bottom: 12),
                         child: ListTile(
@@ -172,6 +245,30 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
             child: ListView(
               controller: scrollController,
               children: [
+                // Video at top in a prominent card
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFF3B82F6).withOpacity(0.3),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF3B82F6).withOpacity(0.1),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  clipBehavior: Clip.hardEdge,
+                  child: ExerciseVideoPlayer(
+                    videoUrl: exercise.videoUrl,
+                    muscleGroup: exercise.primaryMuscle,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                
+                // Exercise header info card
                 Row(
                   children: [
                     CircleAvatar(
@@ -210,13 +307,6 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                 ),
                 const SizedBox(height: 24),
                 
-                // Animation/Video Preview
-                ExerciseVideoPlayer(
-                  videoUrl: exercise.videoUrl,
-                  muscleGroup: exercise.primaryMuscle,
-                ),
-                const SizedBox(height: 24),
-                
                 _InfoRow(
                   icon: Icons.fitness_center,
                   label: 'Equipment',
@@ -243,15 +333,15 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                 
                 if (exercise.instructions != null) ...[
                   const SizedBox(height: 24),
-                  Row(
+                  const Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.list_alt,
                         color: Color(0xFF3B82F6),
                         size: 20,
                       ),
-                      const SizedBox(width: 8),
-                      const Text(
+                      SizedBox(width: 8),
+                      Text(
                         'Instructions',
                         style: TextStyle(
                           fontSize: 18,
@@ -278,6 +368,86 @@ class _ExercisesScreenState extends State<ExercisesScreen> {
                         color: Colors.white.withOpacity(0.8),
                         height: 1.6,
                       ),
+                    ),
+                  ),
+                ],
+                
+                if (exercise.suggestedSets != null || exercise.suggestedReps != null) ...[
+                  const SizedBox(height: 24),
+                  const Row(
+                    children: [
+                      Icon(
+                        Icons.repeat,
+                        color: Color(0xFF3B82F6),
+                        size: 20,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Recommended Sets & Reps',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0A0A0A),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFF3B82F6).withOpacity(0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        if (exercise.suggestedSets != null)
+                          Column(
+                            children: [
+                              Text(
+                                '${exercise.suggestedSets}',
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF3B82F6),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Sets',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white.withOpacity(0.7),
+                                ),
+                              ),
+                            ],
+                          ),
+                        if (exercise.suggestedReps != null)
+                          Column(
+                            children: [
+                              Text(
+                                '${exercise.suggestedReps}',
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF3B82F6),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Reps',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white.withOpacity(0.7),
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
                     ),
                   ),
                 ],

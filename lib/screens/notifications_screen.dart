@@ -3,14 +3,31 @@ import 'package:provider/provider.dart';
 import '../providers/app_state.dart';
 import '../models/notification.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
+
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  int _currentPage = 0;
+  static const int _itemsPerPage = 10;
 
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
     final notifications = appState.notifications;
     final unreadCount = notifications.where((n) => !n.isRead).length;
+
+    // Calculate pagination
+    final totalItems = notifications.length;
+    final totalPages = (totalItems / _itemsPerPage).ceil();
+    final startIndex = _currentPage * _itemsPerPage;
+    final endIndex = (startIndex + _itemsPerPage).clamp(0, totalItems);
+    final paginatedNotifications = totalItems > 0
+        ? notifications.sublist(startIndex, endIndex < totalItems ? endIndex : totalItems)
+        : <AppNotification>[];
 
     return Scaffold(
       appBar: AppBar(
@@ -54,9 +71,40 @@ class NotificationsScreen extends StatelessWidget {
             )
           : ListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: notifications.length,
+              itemCount: paginatedNotifications.length + 1,
               itemBuilder: (context, index) {
-                final notification = notifications[index];
+                if (index == paginatedNotifications.length) {
+                  return Container(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          onPressed: _currentPage > 0
+                              ? () => setState(() => _currentPage--)
+                              : null,
+                          icon: const Icon(Icons.arrow_back),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Page ${_currentPage + 1} of ${totalPages.toString()}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        IconButton(
+                          onPressed: _currentPage < totalPages - 1
+                              ? () => setState(() => _currentPage++)
+                              : null,
+                          icon: const Icon(Icons.arrow_forward),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                final notification = paginatedNotifications[index];
                 return _NotificationCard(
                   notification: notification,
                   onTap: () => appState.markNotificationAsRead(notification.id),

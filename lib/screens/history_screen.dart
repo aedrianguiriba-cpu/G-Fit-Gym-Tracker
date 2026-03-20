@@ -5,13 +5,44 @@ import '../providers/app_state.dart';
 import '../models/workout.dart';
 import '../widgets/branded_app_bar.dart';
 
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
+
+  @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  int _currentPage = 0;
+  static const int _itemsPerPage = 10;
+
+  @override
+  void initState() {
+    super.initState();
+    // Refresh workouts when history screen is opened
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AppState>().refreshWorkouts();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
     final workouts = appState.getWorkoutHistory();
+
+    print('📊 History Screen - Workouts: ${workouts.length}');
+    for (var w in workouts) {
+      print('   - ${w.name}: ${w.isCompleted ? "completed" : "pending"}');
+    }
+
+    // Calculate pagination
+    final totalItems = workouts.length;
+    final totalPages = (totalItems / _itemsPerPage).ceil();
+    final startIndex = _currentPage * _itemsPerPage;
+    final endIndex = (startIndex + _itemsPerPage).clamp(0, totalItems);
+    final paginatedWorkouts = totalItems > 0
+        ? workouts.sublist(startIndex, endIndex < totalItems ? endIndex : totalItems)
+        : <Workout>[];
 
     return Scaffold(
       appBar: const BrandedAppBar(
@@ -43,9 +74,40 @@ class HistoryScreen extends StatelessWidget {
             )
           : ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: workouts.length,
+              itemCount: paginatedWorkouts.length + 1,
               itemBuilder: (context, index) {
-                final workout = workouts[index];
+                if (index == paginatedWorkouts.length) {
+                  return Container(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          onPressed: _currentPage > 0
+                              ? () => setState(() => _currentPage--)
+                              : null,
+                          icon: const Icon(Icons.arrow_back),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Page ${_currentPage + 1} of ${totalPages.toString()}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        IconButton(
+                          onPressed: _currentPage < totalPages - 1
+                              ? () => setState(() => _currentPage++)
+                              : null,
+                          icon: const Icon(Icons.arrow_forward),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                final workout = paginatedWorkouts[index];
                 return _WorkoutHistoryCard(
                   workout: workout,
                   onTap: () => _showWorkoutDetail(context, workout),

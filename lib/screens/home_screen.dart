@@ -83,8 +83,30 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class DashboardTab extends StatelessWidget {
+class DashboardTab extends StatefulWidget {
   const DashboardTab({super.key});
+
+  @override
+  State<DashboardTab> createState() => _DashboardTabState();
+}
+
+class _DashboardTabState extends State<DashboardTab> {
+  String _getCacheBustingUrl(String url) {
+    // Add timestamp as query parameter to force reload
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final separator = url.contains('?') ? '&' : '?';
+    return '$url${separator}t=$timestamp';
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Refresh workouts when dashboard is loaded
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      print('🔄 DashboardTab: Calling refreshWorkouts...');
+      context.read<AppState>().refreshWorkouts();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,6 +114,13 @@ class DashboardTab extends StatelessWidget {
     final user = appState.currentUser;
     final stats = appState.getUserStats(days: 30);
     final recentWorkouts = appState.getWorkoutHistory().take(5).toList();
+
+    print('🏠 Dashboard - Stats: $stats');
+    print('   Workouts count: ${stats['workoutCount']}');
+    print('   Total duration: ${stats['totalDuration']}');
+    print('   Total volume: ${stats['totalVolume']}');
+    print('   Recent workouts: ${recentWorkouts.length}');
+    print('   Workout IDs: ${recentWorkouts.map((w) => w.id).toList()}');
 
     return Scaffold(
       body: CustomScrollView(
@@ -121,7 +150,7 @@ class DashboardTab extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            // Logo Avatar
+                            // User Profile Avatar
                             Container(
                               width: 50,
                               height: 50,
@@ -136,33 +165,55 @@ class DashboardTab extends StatelessWidget {
                                 ],
                               ),
                               child: ClipOval(
-                                child: Image.asset(
-                                  'lib/pics/logo.png',
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        gradient: LinearGradient(
-                                          colors: [
-                                            const Color(0xFF3B82F6),
-                                            const Color(0xFF8B5CF6),
-                                          ],
+                                child: user?.avatarUrl != null && user!.avatarUrl!.isNotEmpty
+                                    ? Image.network(
+                                        _getCacheBustingUrl(user.avatarUrl!),
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Container(
+                                            decoration: const BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              gradient: LinearGradient(
+                                                colors: [
+                                                  Color(0xFF3B82F6),
+                                                  Color(0xFF8B5CF6),
+                                                ],
+                                              ),
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                (user?.name ?? "U")[0].toUpperCase(),
+                                                style: const TextStyle(
+                                                  fontSize: 22,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      )
+                                    : Container(
+                                        decoration: const BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: LinearGradient(
+                                            colors: [
+                                              Color(0xFF3B82F6),
+                                              Color(0xFF8B5CF6),
+                                            ],
+                                          ),
                                         ),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          (user?.name ?? "U")[0].toUpperCase(),
-                                          style: const TextStyle(
-                                            fontSize: 22,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
+                                        child: Center(
+                                          child: Text(
+                                            (user?.name ?? "U")[0].toUpperCase(),
+                                            style: const TextStyle(
+                                              fontSize: 22,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
                                           ),
                                         ),
                                       ),
-                                    );
-                                  },
-                                ),
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -206,9 +257,9 @@ class DashboardTab extends StatelessWidget {
                                             const SizedBox(width: 4),
                                             Text(
                                               '${stats['workoutCount']} day streak',
-                                              style: TextStyle(
+                                              style: const TextStyle(
                                                 fontSize: 12,
-                                                color: const Color(0xFF3B82F6),
+                                                color: Color(0xFF3B82F6),
                                                 fontWeight: FontWeight.w600,
                                               ),
                                             ),
@@ -472,7 +523,7 @@ class DashboardTab extends StatelessWidget {
                   child: _StatCard(
                     icon: Icons.fitness_center,
                     label: 'Workouts',
-                    value: '${stats['totalWorkouts'] ?? 0}',
+                    value: '${stats['workoutCount'] ?? 0}',
                     color: Colors.blue,
                   ),
                 ),
@@ -503,7 +554,7 @@ class DashboardTab extends StatelessWidget {
                   child: _StatCard(
                     icon: Icons.repeat,
                     label: 'Total Sets',
-                    value: '${stats['totalSets'] ?? 0}',
+                    value: '${stats['setCount'] ?? 0}',
                     color: Colors.purple,
                   ),
                 ),
@@ -511,7 +562,7 @@ class DashboardTab extends StatelessWidget {
             ),
             const SizedBox(height: 24),
 
-            // Popular Exercises with photos
+            // Popular Exercises Banner
             const Text(
               'Popular Exercises',
               style: TextStyle(
@@ -525,7 +576,7 @@ class DashboardTab extends StatelessWidget {
               height: 160,
               child: ListView(
                 scrollDirection: Axis.horizontal,
-                children: [
+                children: const [
                   _ExercisePhotoCard(
                     imageUrl: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400',
                     title: 'Chest',
@@ -542,7 +593,7 @@ class DashboardTab extends StatelessWidget {
                     exercises: '7 exercises',
                   ),
                   _ExercisePhotoCard(
-                    imageUrl: 'https://images.unsplash.com/photo-1583454155184-870f5d1b1ecc?w=400',
+                    imageUrl: 'https://images.unsplash.com/photo-1527139225892-d61e99d84fdf?w=400',
                     title: 'Arms',
                     exercises: '5 exercises',
                   ),
@@ -694,22 +745,13 @@ class _StatCardState extends State<_StatCard>
                   },
                 ),
                 const SizedBox(height: 8),
-                TweenAnimationBuilder<int>(
-                  tween: IntTween(
-                    begin: 0,
-                    end: int.tryParse(widget.value) ?? 0,
+                Text(
+                  widget.value,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
-                  duration: const Duration(milliseconds: 1000),
-                  builder: (context, value, child) {
-                    return Text(
-                      value.toString(),
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    );
-                  },
                 ),
                 Text(
                   widget.label,
@@ -948,26 +990,6 @@ class _ExercisePhotoCardState extends State<_ExercisePhotoCard>
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Text(
-                                widget.exercises,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white.withOpacity(0.8),
-                                ),
-                              ),
-                              if (_isHovered) ...[
-                                const Spacer(),
-                                const Icon(
-                                  Icons.arrow_forward,
-                                  color: Color(0xFF3B82F6),
-                                  size: 20,
-                                ),
-                              ],
-                            ],
                           ),
                         ],
                       ),

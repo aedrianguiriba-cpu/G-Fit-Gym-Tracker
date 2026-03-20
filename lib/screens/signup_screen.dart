@@ -46,9 +46,10 @@ class _SignupScreenState extends State<SignupScreen> {
           Navigator.pop(context);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Email already exists'),
+            SnackBar(
+              content: Text(appState.lastError ?? 'Registration failed'),
               backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
             ),
           );
         }

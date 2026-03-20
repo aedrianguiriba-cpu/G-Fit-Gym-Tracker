@@ -40,13 +40,13 @@ class WorkoutSet {
   factory WorkoutSet.fromJson(Map<String, dynamic> json) {
     return WorkoutSet(
       id: json['id'],
-      setNumber: json['setNumber'],
-      weight: (json['weight'] as num).toDouble(),
-      reps: json['reps'],
-      isCompleted: json['isCompleted'] ?? false,
+      setNumber: json['setNumber'] ?? json['set_number'] ?? 0,
+      weight: ((json['weight'] ?? json['Weight']) as num).toDouble(),
+      reps: json['reps'] ?? json['Reps'] ?? 0,
+      isCompleted: json['isCompleted'] ?? json['is_completed'] ?? false,
       completedAt: json['completedAt'] != null
           ? DateTime.parse(json['completedAt'])
-          : null,
+          : (json['completed_at'] != null ? DateTime.parse(json['completed_at']) : null),
       notes: json['notes'],
     );
   }

@@ -31,27 +31,26 @@ class ThemeProvider extends ChangeNotifier {
   }
 
   ThemeData get darkTheme => ThemeData(
-    colorScheme: ColorScheme.dark(
-      primary: const Color(0xFF3B82F6),
-      secondary: const Color(0xFF60A5FA),
-      surface: const Color(0xFF1A1A1A),
-      background: const Color(0xFF0A0A0A),
-      error: const Color(0xFFEF4444),
+    colorScheme: const ColorScheme.dark(
+      primary: Color(0xFF3B82F6),
+      secondary: Color(0xFF60A5FA),
+      surface: Color(0xFF1A1A1A),
+      background: Color(0xFF0A0A0A),
+      error: Color(0xFFEF4444),
       onPrimary: Colors.white,
       onSecondary: Colors.white,
       onSurface: Colors.white,
-      onBackground: Colors.white,
       onError: Colors.white,
     ),
     scaffoldBackgroundColor: const Color(0xFF0A0A0A),
     useMaterial3: true,
     brightness: Brightness.dark,
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       elevation: 0,
       color: const Color(0xFF1A1A1A),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.white.withOpacity(0.05)),
+        side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
       ),
     ),
     appBarTheme: const AppBarTheme(
@@ -81,18 +80,18 @@ class ThemeProvider extends ChangeNotifier {
       fillColor: const Color(0xFF1A1A1A),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+        borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
       ),
-      labelStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
-      hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+      labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.7)),
+      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
     ),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: Color(0xFF1A1A1A),
@@ -103,22 +102,21 @@ class ThemeProvider extends ChangeNotifier {
     ),
     iconTheme: const IconThemeData(color: Colors.white),
     dividerTheme: DividerThemeData(
-      color: Colors.white.withOpacity(0.1),
+      color: Colors.white.withValues(alpha: 0.1),
       thickness: 1,
     ),
   );
 
   ThemeData get lightTheme => ThemeData(
-    colorScheme: ColorScheme.light(
-      primary: const Color(0xFF3B82F6),
-      secondary: const Color(0xFF60A5FA),
+    colorScheme: const ColorScheme.light(
+      primary: Color(0xFF3B82F6),
+      secondary: Color(0xFF60A5FA),
       surface: Colors.white,
-      background: const Color(0xFFF8F9FA),
-      error: const Color(0xFFEF4444),
+      background: Color(0xFFF8F9FA),
+      error: Color(0xFFEF4444),
       onPrimary: Colors.white,
       onSecondary: Colors.white,
       onSurface: Colors.black,
-      onBackground: Colors.black,
       onError: Colors.white,
     ),
     scaffoldBackgroundColor: const Color(0xFFF8F9FA),
@@ -141,12 +139,12 @@ class ThemeProvider extends ChangeNotifier {
       labelMedium: TextStyle(color: Colors.black),
       labelSmall: TextStyle(color: Colors.black),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       elevation: 0,
       color: Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.black.withOpacity(0.08)),
+        side: BorderSide(color: Colors.black.withValues(alpha: 0.08)),
       ),
     ),
     appBarTheme: const AppBarTheme(
@@ -182,18 +180,18 @@ class ThemeProvider extends ChangeNotifier {
       fillColor: Colors.white,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.black.withOpacity(0.2)),
+        borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.2)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.black.withOpacity(0.2)),
+        borderSide: BorderSide(color: Colors.black.withValues(alpha: 0.2)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 2),
       ),
       labelStyle: const TextStyle(color: Colors.black),
-      hintStyle: TextStyle(color: Colors.black.withOpacity(0.5)),
+      hintStyle: TextStyle(color: Colors.black.withValues(alpha: 0.5)),
     ),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: Colors.white,
@@ -206,14 +204,14 @@ class ThemeProvider extends ChangeNotifier {
     ),
     iconTheme: const IconThemeData(color: Colors.black),
     dividerTheme: DividerThemeData(
-      color: Colors.black.withOpacity(0.1),
+      color: Colors.black.withValues(alpha: 0.1),
       thickness: 1,
     ),
     listTileTheme: const ListTileThemeData(
       textColor: Colors.black,
       iconColor: Colors.black,
     ),
-    dialogTheme: const DialogTheme(
+    dialogTheme: const DialogThemeData(
       backgroundColor: Colors.white,
       titleTextStyle: TextStyle(
         color: Colors.black,

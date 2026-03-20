@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
 import '../models/exercise.dart';
 
 class ExerciseVideoPlayer extends StatefulWidget {
@@ -18,6 +20,9 @@ class ExerciseVideoPlayer extends StatefulWidget {
 class _ExerciseVideoPlayerState extends State<ExerciseVideoPlayer>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
+  VideoPlayerController? _videoController;
+  ChewieController? _chewieController;
+  bool _videoInitialized = false;
 
   @override
   void initState() {
@@ -26,18 +31,311 @@ class _ExerciseVideoPlayerState extends State<ExerciseVideoPlayer>
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat();
+
+    // Initialize video player if URL is provided
+    if (widget.videoUrl != null && widget.videoUrl!.isNotEmpty) {
+      _initializeVideoPlayer();
+    }
+  }
+
+  Future<void> _initializeVideoPlayer() async {
+    try {
+      print('📹 Initializing video player with URL: ${widget.videoUrl}');
+      _videoController = VideoPlayerController.networkUrl(
+        Uri.parse(widget.videoUrl!),
+      );
+
+      print('⏳ Waiting for video to initialize...');
+      await _videoController!.initialize();
+      print('✅ Video controller initialized successfully');
+      print('   Video size: ${_videoController!.value.size}');
+      print('   Duration: ${_videoController!.value.duration}');
+
+      if (mounted) {
+        print('📦 Creating Chewie controller...');
+        _chewieController = ChewieController(
+          videoPlayerController: _videoController!,
+          autoPlay: false,
+          looping: true,
+          showControls: true,
+          materialProgressColors: ChewieProgressColors(
+            playedColor: const Color(0xFF3B82F6),
+            handleColor: const Color(0xFF3B82F6),
+            backgroundColor: Colors.grey,
+            bufferedColor: Colors.grey.shade300,
+          ),
+        );
+        print('✅ Chewie controller created');
+        print('   _chewieController is null: ${_chewieController == null}');
+
+        print('🔄 Calling setState to trigger rebuild');
+        setState(() {
+          _videoInitialized = true;
+          print('   _videoInitialized set to true');
+        });
+        print('✅ setState complete, widget should rebuild');
+      } else {
+        print('⚠️ Widget not mounted after initialization');
+      }
+    } catch (e) {
+      print('❌ Error initializing video: $e');
+      print('   Stack trace: $e');
+      if (mounted) {
+        setState(() {
+          _videoInitialized = false;
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _chewieController?.dispose();
+    _videoController?.dispose();
     super.dispose();
   }
 
+  @override
+  Widget build(BuildContext context) {
+    print('🏗️ ExerciseVideoPlayer.build() called');
+    print('   videoUrl: ${widget.videoUrl}');
+    print('   _videoInitialized: $_videoInitialized');
+    print('   _chewieController: $_chewieController');
+
+    // Show video if available and initialized
+    if (widget.videoUrl != null && widget.videoUrl!.isNotEmpty) {
+      print('✅ Video URL is present, checking initialization status...');
+      if (_videoInitialized && _chewieController != null) {
+        print('🎬 DISPLAYING CHEWIE VIDEO PLAYER');
+        return Container(
+          height: 300,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.1),
+            ),
+          ),
+          clipBehavior: Clip.hardEdge,
+          child: Chewie(
+            controller: _chewieController!,
+          ),
+        );
+      } else {
+        // Still loading
+        print('⏳ Video is loading... (initialized: $_videoInitialized, controller: ${_chewieController != null})');
+        return Container(
+          height: 200,
+          decoration: BoxDecoration(
+            color: const Color(0xFF0A0A0A),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.1),
+            ),
+          ),
+          child: const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    Color(0xFF3B82F6),
+                  ),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Loading video...',
+                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    }
+
+    // No video URL - show animation fallback
+    print('ℹ️ No video URL provided, using animation');
+    return _buildAnimationFallback();
+  }
+
+  Widget _buildAnimationFallback() {
+    return Container(
+      height: 200,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0A0A0A),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
+        ),
+      ),
+      child: AnimatedBuilder(
+        animation: _animationController,
+        builder: (context, child) {
+          final progress = _animationController.value;
+
+          // Select animation based on muscle group
+          Widget animation;
+          String exerciseLabel;
+
+          switch (widget.muscleGroup) {
+            case MuscleGroup.chest:
+              animation = _buildChestAnimation(progress);
+              exerciseLabel = 'Chest Exercise';
+              break;
+            case MuscleGroup.back:
+              animation = _buildBackAnimation(progress);
+              exerciseLabel = 'Back Exercise';
+              break;
+            case MuscleGroup.shoulders:
+              animation = _buildShouldersAnimation(progress);
+              exerciseLabel = 'Shoulder Exercise';
+              break;
+            case MuscleGroup.arms:
+              animation = _buildArmsAnimation(progress);
+              exerciseLabel = 'Arm Exercise';
+              break;
+            case MuscleGroup.legs:
+              animation = _buildLegsAnimation(progress);
+              exerciseLabel = 'Leg Exercise';
+              break;
+            case MuscleGroup.core:
+              animation = _buildCoreAnimation(progress);
+              exerciseLabel = 'Core Exercise';
+              break;
+            case MuscleGroup.cardio:
+              animation = _buildCardioAnimation(progress);
+              exerciseLabel = 'Cardio Exercise';
+              break;
+            case MuscleGroup.fullBody:
+              animation = _buildFullBodyAnimation(progress);
+              exerciseLabel = 'Full Body Exercise';
+              break;
+            default:
+              animation = _buildArmsAnimation(progress);
+              exerciseLabel = 'Exercise Demo';
+          }
+
+          return Stack(
+            children: [
+              // Animated background gradient
+              Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      const Color(0xFF1A1A1A),
+                      Color.lerp(
+                        const Color(0xFF3B82F6).withOpacity(0.2),
+                        const Color(0xFF8B5CF6).withOpacity(0.2),
+                        progress,
+                      )!,
+                      const Color(0xFF0A0A0A),
+                    ],
+                  ),
+                ),
+              ),
+              // Exercise animation
+              Center(
+                child: SizedBox(
+                  height: 140,
+                  child: animation,
+                ),
+              ),
+              // Motion particles
+              ...List.generate(3, (index) {
+                final offset = (progress + index * 0.33) % 1.0;
+                return Positioned(
+                  top: 20 + (offset * 100),
+                  left: 40 + (index * 15),
+                  child: Opacity(
+                    opacity: 1 - offset,
+                    child: Container(
+                      width: 4,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Color.lerp(
+                          const Color(0xFF3B82F6),
+                          const Color(0xFF8B5CF6),
+                          offset,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+              // Rep counter badge
+              Positioned(
+                top: 12,
+                left: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3B82F6).withOpacity(0.9),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    'Rep: ${(progress * 10).floor() + 1}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              // Exercise label
+              Positioned(
+                bottom: 12,
+                right: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFF3B82F6).withOpacity(0.5),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.fitness_center,
+                        size: 16,
+                        color: Color(0xFF3B82F6),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        exerciseLabel,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildChestAnimation(double progress) {
-    // Push-up / Bench Press motion
     final pushDepth = (1 - (progress * 2 - 1).abs()) * 15;
-    
     return _buildExerciseFigure(
       progress: progress,
       verticalOffset: pushDepth,
@@ -47,9 +345,7 @@ class _ExerciseVideoPlayerState extends State<ExerciseVideoPlayer>
   }
 
   Widget _buildBackAnimation(double progress) {
-    // Pull-up / Row motion
     final pullHeight = (progress * 2 - 1).abs() * 20;
-    
     return _buildExerciseFigure(
       progress: progress,
       verticalOffset: -pullHeight,
@@ -59,7 +355,6 @@ class _ExerciseVideoPlayerState extends State<ExerciseVideoPlayer>
   }
 
   Widget _buildShouldersAnimation(double progress) {
-    // Overhead Press motion
     return _buildExerciseFigure(
       progress: progress,
       verticalOffset: 0,
@@ -69,9 +364,7 @@ class _ExerciseVideoPlayerState extends State<ExerciseVideoPlayer>
   }
 
   Widget _buildArmsAnimation(double progress) {
-    // Bicep Curl motion
     final curlAngle = (1 - (progress * 2 - 1).abs()) * 1.8;
-    
     return _buildExerciseFigure(
       progress: progress,
       verticalOffset: 0,
@@ -81,9 +374,7 @@ class _ExerciseVideoPlayerState extends State<ExerciseVideoPlayer>
   }
 
   Widget _buildLegsAnimation(double progress) {
-    // Squat motion
     final squatDepth = (1 - (progress * 2 - 1).abs()) * 30;
-    
     return _buildExerciseFigure(
       progress: progress,
       verticalOffset: squatDepth,
@@ -94,9 +385,7 @@ class _ExerciseVideoPlayerState extends State<ExerciseVideoPlayer>
   }
 
   Widget _buildCoreAnimation(double progress) {
-    // Crunch / Plank motion
     final crunchAngle = (1 - (progress * 2 - 1).abs()) * 0.3;
-    
     return _buildExerciseFigure(
       progress: progress,
       verticalOffset: 0,
@@ -106,9 +395,7 @@ class _ExerciseVideoPlayerState extends State<ExerciseVideoPlayer>
   }
 
   Widget _buildCardioAnimation(double progress) {
-    // Running motion
     final runBounce = (progress * 2 - 1).abs() * 10;
-    
     return _buildExerciseFigure(
       progress: progress,
       verticalOffset: -runBounce,
@@ -118,9 +405,7 @@ class _ExerciseVideoPlayerState extends State<ExerciseVideoPlayer>
   }
 
   Widget _buildFullBodyAnimation(double progress) {
-    // Burpee motion
     final burpeeDepth = (1 - (progress * 2 - 1).abs()) * 35;
-    
     return _buildExerciseFigure(
       progress: progress,
       verticalOffset: burpeeDepth,
@@ -289,186 +574,6 @@ class _ExerciseVideoPlayerState extends State<ExerciseVideoPlayer>
           ),
         ),
       ],
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 200,
-      decoration: BoxDecoration(
-        color: const Color(0xFF0A0A0A),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.1),
-        ),
-      ),
-      child: AnimatedBuilder(
-        animation: _animationController,
-        builder: (context, child) {
-          final progress = _animationController.value;
-
-          // Select animation based on muscle group
-          Widget animation;
-          String exerciseLabel;
-          
-          switch (widget.muscleGroup) {
-            case MuscleGroup.chest:
-              animation = _buildChestAnimation(progress);
-              exerciseLabel = 'Chest Exercise';
-              break;
-            case MuscleGroup.back:
-              animation = _buildBackAnimation(progress);
-              exerciseLabel = 'Back Exercise';
-              break;
-            case MuscleGroup.shoulders:
-              animation = _buildShouldersAnimation(progress);
-              exerciseLabel = 'Shoulder Exercise';
-              break;
-            case MuscleGroup.arms:
-              animation = _buildArmsAnimation(progress);
-              exerciseLabel = 'Arm Exercise';
-              break;
-            case MuscleGroup.legs:
-              animation = _buildLegsAnimation(progress);
-              exerciseLabel = 'Leg Exercise';
-              break;
-            case MuscleGroup.core:
-              animation = _buildCoreAnimation(progress);
-              exerciseLabel = 'Core Exercise';
-              break;
-            case MuscleGroup.cardio:
-              animation = _buildCardioAnimation(progress);
-              exerciseLabel = 'Cardio Exercise';
-              break;
-            case MuscleGroup.fullBody:
-              animation = _buildFullBodyAnimation(progress);
-              exerciseLabel = 'Full Body Exercise';
-              break;
-            default:
-              animation = _buildArmsAnimation(progress);
-              exerciseLabel = 'Exercise Demo';
-          }
-
-          return Stack(
-            children: [
-              // Animated background gradient
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      const Color(0xFF1A1A1A),
-                      Color.lerp(
-                        const Color(0xFF3B82F6).withOpacity(0.2),
-                        const Color(0xFF8B5CF6).withOpacity(0.2),
-                        progress,
-                      )!,
-                      const Color(0xFF0A0A0A),
-                    ],
-                  ),
-                ),
-              ),
-              
-              // Exercise animation
-              Center(
-                child: SizedBox(
-                  height: 140,
-                  child: animation,
-                ),
-              ),
-              
-              // Motion particles
-              ...List.generate(3, (index) {
-                final offset = (progress + index * 0.33) % 1.0;
-                return Positioned(
-                  top: 20 + (offset * 100),
-                  left: 40 + (index * 15),
-                  child: Opacity(
-                    opacity: 1 - offset,
-                    child: Container(
-                      width: 4,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color.lerp(
-                          const Color(0xFF3B82F6),
-                          const Color(0xFF8B5CF6),
-                          offset,
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }),
-              
-              // Rep counter badge
-              Positioned(
-                top: 12,
-                left: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF3B82F6).withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    'Rep: ${(progress * 10).floor() + 1}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              
-              // Exercise label
-              Positioned(
-                bottom: 12,
-                right: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: const Color(0xFF3B82F6).withOpacity(0.5),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(
-                        Icons.fitness_center,
-                        size: 16,
-                        color: Color(0xFF3B82F6),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        exerciseLabel,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ),
     );
   }
 }

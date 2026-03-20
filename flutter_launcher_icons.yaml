@@ -1,0 +1,16 @@
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "lib/pics/logo.png"
+  image_path_android: "lib/pics/logo.png"
+  image_path_ios: "lib/pics/logo.png"
+  image_path_web: "lib/pics/logo.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "lib/pics/logo.png"
+  min_sdk_android: 21
+  # Web
+  web:
+    generate: true
+    image_path: "lib/pics/logo.png"
+    background_color: "#0A0A0A"
+    theme_color: "#3B82F6"

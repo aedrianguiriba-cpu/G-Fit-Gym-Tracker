@@ -77,19 +77,41 @@ class Workout {
   }
 
   factory Workout.fromJson(Map<String, dynamic> json) {
+    final startTime = json['start_time'] != null 
+        ? DateTime.parse(json['start_time'])
+        : DateTime.parse(json['startTime']);
+    final endTime = json['end_time'] != null 
+        ? DateTime.parse(json['end_time'])
+        : (json['endTime'] != null ? DateTime.parse(json['endTime']) : null);
+    
+    print('📦 Parsing Workout.fromJson:');
+    print('   id: ${json['id']}');
+    print('   name: ${json['name']}');
+    print('   startTime: $startTime (raw: ${json['start_time']})');
+    print('   endTime: $endTime (raw: ${json['end_time']})');
+    print('   isCompleted: ${json['is_completed'] ?? json['isCompleted']}');
+    
     return Workout(
       id: json['id'],
-      userId: json['userId'],
+      userId: json['user_id'] ?? json['userId'],
       name: json['name'],
-      startTime: DateTime.parse(json['startTime']),
-      endTime: json['endTime'] != null ? DateTime.parse(json['endTime']) : null,
-      exercises: (json['exercises'] as List)
-          .map((e) => WorkoutExercise.fromJson(e))
-          .toList(),
+      startTime: startTime,
+      endTime: endTime,
+      exercises: (json['exercises'] as List?)
+          ?.map((e) => WorkoutExercise.fromJson(e))
+          .toList() ?? [],
       notes: json['notes'],
-      isTemplate: json['isTemplate'] ?? false,
-      isCompleted: json['isCompleted'] ?? false,
+      isTemplate: _parseBool(json['is_template'] ?? json['isTemplate']),
+      isCompleted: _parseBool(json['is_completed'] ?? json['isCompleted']),
     );
+  }
+
+  static bool _parseBool(dynamic value) {
+    if (value == null) return false;
+    if (value is bool) return value;
+    if (value is String) return value.toLowerCase() == 'true';
+    if (value is int) return value != 0;
+    return false;
   }
 
   Map<String, dynamic> toJson() {

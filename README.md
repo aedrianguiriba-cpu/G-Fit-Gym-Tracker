@@ -12,11 +12,6 @@ A modern, minimalist gym tracking app built with Flutter.
 - ⚙️ **Settings** - Customize your experience
 - 🎨 **Dark Theme** - Modern minimalist design with blue accents
 
-## Demo Credentials
-
-- **Email**: demo@gym.com
-- **Password**: password123
-
 ## Getting Started
 
 ### Prerequisites

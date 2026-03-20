@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/app_state.dart';
-import '../providers/theme_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -14,10 +14,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
   bool _workoutReminders = true;
   bool _achievementNotifications = true;
-  bool _soundEnabled = true;
-  bool _hapticFeedback = true;
-  String _weightUnit = 'kg';
-  String _distanceUnit = 'km';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    // Load notification settings from preferences
+    final appState = context.read<AppState>();
+    final prefs = await appState.getUserPreferences();
+    
+    setState(() {
+      _notificationsEnabled = prefs['notificationsEnabled'] ?? true;
+      _workoutReminders = prefs['workoutReminders'] ?? true;
+      _achievementNotifications = prefs['achievementNotifications'] ?? true;
+    });
+  }
+
+  Future<void> _saveSettings() async {
+    final appState = context.read<AppState>();
+    await appState.saveUserPreferences({
+      'notificationsEnabled': _notificationsEnabled,
+      'workoutReminders': _workoutReminders,
+      'achievementNotifications': _achievementNotifications,
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +54,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         children: [
           // Account Section
-          _SectionHeader(title: 'Account'),
+          const _SectionHeader(title: 'Account'),
           _SettingsTile(
             icon: Icons.person_outline,
             title: 'Edit Profile',
@@ -53,13 +76,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const Divider(height: 32),
 
           // Notifications Section
-          _SectionHeader(title: 'Notifications'),
+          const _SectionHeader(title: 'Notifications'),
           _SwitchTile(
             icon: Icons.notifications_outlined,
             title: 'Push Notifications',
             subtitle: 'Receive workout reminders and updates',
             value: _notificationsEnabled,
-            onChanged: (value) => setState(() => _notificationsEnabled = value),
+            onChanged: (value) {
+              setState(() => _notificationsEnabled = value);
+              _saveSettings();
+            },
           ),
           _SwitchTile(
             icon: Icons.alarm_outlined,
@@ -67,7 +93,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: 'Daily workout reminders',
             value: _workoutReminders,
             enabled: _notificationsEnabled,
-            onChanged: (value) => setState(() => _workoutReminders = value),
+            onChanged: (value) {
+              setState(() => _workoutReminders = value);
+              _saveSettings();
+            },
           ),
           _SwitchTile(
             icon: Icons.emoji_events_outlined,
@@ -75,106 +104,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: 'Get notified about milestones',
             value: _achievementNotifications,
             enabled: _notificationsEnabled,
-            onChanged: (value) => setState(() => _achievementNotifications = value),
-          ),
-
-          const Divider(height: 32),
-
-          // Preferences Section
-          _SectionHeader(title: 'Preferences'),
-          _SettingsTile(
-            icon: Icons.fitness_center,
-            title: 'Weight Unit',
-            subtitle: _weightUnit.toUpperCase(),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showUnitPicker(
-              context,
-              'Weight Unit',
-              _weightUnit,
-              ['kg', 'lbs'],
-              (value) => setState(() => _weightUnit = value),
-            ),
-          ),
-          _SettingsTile(
-            icon: Icons.straighten,
-            title: 'Distance Unit',
-            subtitle: _distanceUnit.toUpperCase(),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showUnitPicker(
-              context,
-              'Distance Unit',
-              _distanceUnit,
-              ['km', 'mi'],
-              (value) => setState(() => _distanceUnit = value),
-            ),
-          ),
-          _SettingsTile(
-            icon: Icons.access_time,
-            title: 'Rest Timer Default',
-            subtitle: '90 seconds',
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showRestTimerDialog(context),
-          ),
-
-          const Divider(height: 32),
-
-          // App Settings Section
-          _SectionHeader(title: 'App Settings'),
-          _SwitchTile(
-            icon: Icons.volume_up_outlined,
-            title: 'Sound Effects',
-            subtitle: 'Play sounds for actions',
-            value: _soundEnabled,
-            onChanged: (value) => setState(() => _soundEnabled = value),
-          ),
-          _SwitchTile(
-            icon: Icons.vibration,
-            title: 'Haptic Feedback',
-            subtitle: 'Vibrate on button press',
-            value: _hapticFeedback,
-            onChanged: (value) => setState(() => _hapticFeedback = value),
-          ),
-          _SettingsTile(
-            icon: Icons.palette_outlined,
-            title: 'Theme',
-            subtitle: context.watch<ThemeProvider>().isDarkMode ? 'Dark' : 'Light',
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => _showThemePicker(context),
-          ),
-
-          const Divider(height: 32),
-
-          // Data & Privacy Section
-          _SectionHeader(title: 'Data & Privacy'),
-          _SettingsTile(
-            icon: Icons.backup_outlined,
-            title: 'Backup Data',
-            subtitle: 'Last backup: Never',
-            onTap: () => _showBackupDialog(context),
-          ),
-          _SettingsTile(
-            icon: Icons.restore_outlined,
-            title: 'Restore Data',
-            onTap: () => _showRestoreDialog(context),
-          ),
-          _SettingsTile(
-            icon: Icons.delete_outline,
-            title: 'Clear Workout History',
-            titleColor: Colors.orange,
-            onTap: () => _showClearHistoryDialog(context),
-          ),
-          _SettingsTile(
-            icon: Icons.delete_forever_outlined,
-            title: 'Delete Account',
-            titleColor: Colors.red,
-            onTap: () => _showDeleteAccountDialog(context),
+            onChanged: (value) {
+              setState(() => _achievementNotifications = value);
+              _saveSettings();
+            },
           ),
 
           const Divider(height: 32),
 
           // About Section
-          _SectionHeader(title: 'About'),
-          _SettingsTile(
+          const _SectionHeader(title: 'About'),
+          const _SettingsTile(
             icon: Icons.info_outline,
             title: 'Version',
             subtitle: '1.0.0',
@@ -182,17 +122,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _SettingsTile(
             icon: Icons.description_outlined,
             title: 'Terms of Service',
-            onTap: () {},
+            onTap: () => _showTermsDialog(context),
           ),
           _SettingsTile(
             icon: Icons.privacy_tip_outlined,
             title: 'Privacy Policy',
-            onTap: () {},
+            onTap: () => _showPrivacyDialog(context),
           ),
           _SettingsTile(
             icon: Icons.help_outline,
             title: 'Help & Support',
-            onTap: () {},
+            onTap: () => _showHelpDialog(context),
           ),
 
           const SizedBox(height: 32),
@@ -202,17 +142,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showEditProfileDialog(BuildContext context) {
-    final nameController = TextEditingController(text: context.read<AppState>().currentUser!.name);
+    final appState = context.read<AppState>();
+    final currentUser = appState.currentUser!;
+    final nameController = TextEditingController(text: currentUser.name);
+    final ageController = TextEditingController(text: currentUser.age?.toString() ?? '');
     
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Edit Profile'),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(
-            labelText: 'Name',
-            border: OutlineInputBorder(),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Name',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: ageController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Age',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
           ),
         ),
         actions: [
@@ -221,8 +180,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              // TODO: Update user name
+            onPressed: () async {
+              if (nameController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Name cannot be empty')),
+                );
+                return;
+              }
+              
+              // Update user profile
+              final age = int.tryParse(ageController.text);
+              await appState.updateUserProfile(
+                name: nameController.text,
+                age: age,
+              );
+              
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Profile updated successfully')),
@@ -236,37 +208,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showChangePasswordDialog(BuildContext context) {
+    final currentPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Change Password'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Current Password',
-                border: OutlineInputBorder(),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: currentPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Current Password',
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'New Password',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 12),
+              TextField(
+                controller: newPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'New Password',
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Confirm Password',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 12),
+              TextField(
+                controller: confirmPasswordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Confirm Password',
+                  border: OutlineInputBorder(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -274,11 +255,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Password changed successfully')),
-              );
+            onPressed: () async {
+              // Validation
+              if (newPasswordController.text.length < 8) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Password must be at least 8 characters')),
+                );
+                return;
+              }
+              
+              if (newPasswordController.text != confirmPasswordController.text) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Passwords do not match')),
+                );
+                return;
+              }
+              
+              try {
+                // Update password
+                await context.read<AppState>().updateUserPassword(
+                  currentPassword: currentPasswordController.text,
+                  newPassword: newPasswordController.text,
+                );
+                
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Password changed successfully')),
+                );
+              } catch (error) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error: $error')),
+                );
+              }
             },
             child: const Text('Change'),
           ),
@@ -287,189 +295,124 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showUnitPicker(BuildContext context, String title, String current, List<String> options, Function(String) onSelect) {
+  Future<void> _launchUrl(String urlString) async {
+    final Uri url = Uri.parse(urlString);
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open URL')),
+          );
+        }
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $error')),
+        );
+      }
+    }
+  }
+
+  void _showTermsDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: options.map((option) {
-            return RadioListTile<String>(
-              title: Text(option.toUpperCase()),
-              value: option,
-              groupValue: current,
-              onChanged: (value) {
-                if (value != null) {
-                  onSelect(value);
-                  Navigator.pop(context);
-                }
-              },
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  void _showRestTimerDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Rest Timer Default'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [60, 90, 120, 180].map((seconds) {
-            return RadioListTile<int>(
-              title: Text('$seconds seconds'),
-              value: seconds,
-              groupValue: 90,
-              onChanged: (value) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Rest timer set to $value seconds')),
-                );
-              },
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  void _showThemePicker(BuildContext context) {
-    final themeProvider = context.read<ThemeProvider>();
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Choose Theme'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            RadioListTile<bool>(
-              title: const Text('Dark'),
-              value: true,
-              groupValue: themeProvider.isDarkMode,
-              onChanged: (value) {
-                if (value != null) {
-                  themeProvider.setTheme(value);
-                  Navigator.pop(dialogContext);
-                }
-              },
-            ),
-            RadioListTile<bool>(
-              title: const Text('Light'),
-              value: false,
-              groupValue: themeProvider.isDarkMode,
-              onChanged: (value) {
-                if (value != null) {
-                  themeProvider.setTheme(value);
-                  Navigator.pop(dialogContext);
-                }
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showBackupDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Backup Data'),
-        content: const Text('Your workout data will be backed up to your account.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+        title: const Text('Terms of Service'),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'G-Fit Terms of Service',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              SizedBox(height: 12),
+              Text(
+                '1. Use of Service\nYou agree to use G-Fit only for lawful purposes and in a way that does not infringe upon the rights of others or restrict their use and enjoyment of the service.\n\n'
+                '2. User Accounts\nWhen you create an account with us, you must provide accurate, complete, and current information. You are responsible for maintaining your login credentials.\n\n'
+                '3. Content\nAll content on G-Fit is owned by or licensed to us. The copying, reproduction, or distribution of content without permission is prohibited.\n\n'
+                '4. Limitation of Liability\nIn no case shall G-Fit be liable for any damages resulting from your use of our service.',
+              ),
+            ],
           ),
+        ),
+        actions: [
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Data backed up successfully')),
-              );
-            },
-            child: const Text('Backup'),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
           ),
         ],
       ),
     );
   }
 
-  void _showRestoreDialog(BuildContext context) {
+  void _showPrivacyDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Restore Data'),
-        content: const Text('This will restore your workout data from the last backup.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+        title: const Text('Privacy Policy'),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'G-Fit Privacy Policy',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              SizedBox(height: 12),
+              Text(
+                '1. Information We Collect\nWe collect personal information such as your name, email, age, and workout data to provide and improve our services.\n\n'
+                '2. How We Use Your Data\nYour data is used to personalize your experience, send notifications, and improve our service. We do not share your data with third parties without consent.\n\n'
+                '3. Data Security\nWe use industry-standard security measures to protect your data. However, no method of transmission is 100% secure.\n\n'
+                '4. Your Rights\nYou have the right to access, modify, or delete your personal data at any time.',
+              ),
+            ],
           ),
+        ),
+        actions: [
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Data restored successfully')),
-              );
-            },
-            child: const Text('Restore'),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
           ),
         ],
       ),
     );
   }
 
-  void _showClearHistoryDialog(BuildContext context) {
+  void _showHelpDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Clear Workout History'),
-        content: const Text('This will permanently delete all your workout history. This action cannot be undone.'),
+        title: const Text('Help & Support'),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Frequently Asked Questions',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              SizedBox(height: 12),
+              Text('Q: How do I start a workout?\nA: Go to Home and tap the + button to start a new workout.'),
+              SizedBox(height: 12),
+              Text('Q: How do I track my progress?\nA: Your workouts are automatically saved. View them in the History tab.'),
+              SizedBox(height: 12),
+              Text('Q: Can I export my data?\nA: Contact support for data export requests.'),
+              SizedBox(height: 12),
+              Text('Q: How are my workouts synced?\nA: Your data is automatically synced to the cloud.'),
+            ],
+          ),
+        ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Workout history cleared')),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: const Text('Clear'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showDeleteAccountDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Account'),
-        content: const Text('This will permanently delete your account and all data. This action cannot be undone.'),
-        actions: [
-          TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Account deletion requested')),
-              );
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: const Text('Close'),
           ),
         ],
       ),
@@ -488,10 +431,10 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Text(
         title.toUpperCase(),
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
-          color: const Color(0xFF3B82F6),
+          color: Color(0xFF3B82F6),
           letterSpacing: 0.5,
         ),
       ),
@@ -602,7 +545,7 @@ class _SwitchTile extends StatelessWidget {
       trailing: Switch(
         value: value,
         onChanged: enabled ? onChanged : null,
-        activeColor: const Color(0xFF3B82F6),
+        activeThumbColor: const Color(0xFF3B82F6),
       ),
     );
   }

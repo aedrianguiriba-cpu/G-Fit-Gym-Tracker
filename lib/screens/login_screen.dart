@@ -12,8 +12,8 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController(text: 'demo@gym.com');
-  final _passwordController = TextEditingController(text: 'password123');
+  final _emailController = TextEditingController(text: '');
+  final _passwordController = TextEditingController(text: '');
   bool _isLoading = false;
   bool _obscurePassword = true;
 
@@ -39,9 +39,10 @@ class _LoginScreenState extends State<LoginScreen> {
         
         if (!success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Invalid email or password'),
+            SnackBar(
+              content: Text(appState.lastError ?? 'Invalid email or password'),
               backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
             ),
           );
         }
@@ -129,6 +130,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
                       labelText: 'Email',
+                      hintText: 'Enter your email',
                       prefixIcon: const Icon(Icons.email_outlined),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -152,6 +154,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     obscureText: _obscurePassword,
                     decoration: InputDecoration(
                       labelText: 'Password',
+                      hintText: 'Enter your password',
                       prefixIcon: const Icon(Icons.lock_outlined),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -201,39 +204,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 16),
                   
-                  // Demo account info
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF3B82F6).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: const Color(0xFF3B82F6).withOpacity(0.3),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Demo Account:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF3B82F6),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Email: demo@gym.com',
-                          style: TextStyle(color: Colors.white.withOpacity(0.9)),
-                        ),
-                        Text(
-                          'Password: password123',
-                          style: TextStyle(color: Colors.white.withOpacity(0.9)),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+
                   
                   // Sign up link
                   Row(
